@@ -18,7 +18,7 @@ LOGGER = singer.get_logger()
 
 
 def do_discover(config):
-    LOGGER.info("Starting discover")
+    LOGGER.info("DEBUGMESSAGE START DISCOVERY PROCESS")
     streams = discover_streams(config)
     if not streams:
         raise Exception("No streams found")
