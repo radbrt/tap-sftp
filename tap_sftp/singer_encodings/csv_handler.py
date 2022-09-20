@@ -2,12 +2,13 @@ import codecs
 import csv
 import io
 import os
+import singer
 
 from tap_sftp import decrypt
 from tap_sftp.singer_encodings import compression
 
 SDC_EXTRA_COLUMN = "_sdc_extra"
-
+LOGGER = singer.get_logger()
 
 def get_row_iterators(iterable, options={}, infer_compression=False):
     """Accepts an interable, options and a flag to infer compression and yields
@@ -32,6 +33,8 @@ def get_row_iterator(iterable, options=None):
     )
 
     headers = set(reader.fieldnames)
+    LOGGER.info("Headers: %s", headers)
+    LOGGER.info("KEYS: %s", set(options['key_properties']))
     if options.get('key_properties'):
         key_properties = set(options['key_properties'])
         if not key_properties.issubset(headers):
