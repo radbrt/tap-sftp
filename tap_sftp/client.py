@@ -10,6 +10,7 @@ import paramiko
 import pytz
 import singer
 from paramiko.ssh_exception import AuthenticationException, SSHException
+from paramiko.sftp_client import SFTPClient
 
 from tap_sftp import decrypt
 
@@ -52,15 +53,15 @@ class SFTPConnection():
             LOGGER.info('Creating new connection to SFTP...')
             self.transport = paramiko.Transport((self.host, self.port))
             self.transport.use_compression(True)
-            self.transport.connect(username=self.username, password=self.password, hostkey=None, pkey=self.key)
-            self.__sftp = paramiko.SFTPClient.from_transport(self.transport)
+            self.transport.connect(username=self.username, password=self.password)
+            self.__sftp = SFTPClient.from_transport(self.transport)
             LOGGER.info('Connection successful')
         except (AuthenticationException, SSHException) as ex:
             self.transport.close()
             self.transport = paramiko.Transport((self.host, self.port))
             self.transport.use_compression(True)
             self.transport.connect(username=self.username, password=self.password, hostkey=None, pkey=None)
-            self.__sftp = paramiko.SFTPClient.from_transport(self.transport)
+            self.__sftp = SFTPClient.from_transport(self.transport)
 
     @property
     def sftp(self):
