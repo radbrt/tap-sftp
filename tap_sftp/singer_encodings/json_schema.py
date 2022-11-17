@@ -179,7 +179,7 @@ def generate_schema(samples, table_spec):
     schema = {}
     for key, value in type_summary.items():
 
-        if table_spec.get('parse_types'):
+        if table_spec.get('parse_types', True):
             datatype = pick_datatype(value)
         else:
             datatype = 'string'
