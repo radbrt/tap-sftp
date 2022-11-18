@@ -67,7 +67,6 @@ def sync_file(sftp_file_spec, stream, table_spec, config, sftp_client):
             'skip_rows': table_spec.get('skip_rows', 0),
             'clean_colnames': table_spec.get('clean_colnames', False)}
 
-
     readers = csv_handler.get_row_iterators(file_handle, options=opts, infer_compression=True)
 
     records_synced = 0
