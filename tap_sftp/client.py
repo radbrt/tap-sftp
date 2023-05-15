@@ -71,6 +71,9 @@ class SFTPConnection():
     def sftp(self, sftp):
         self.__sftp = sftp
 
+    def reconnect(self):
+        self.__connect()
+
     def close(self):
         self.sftp.close()
         self.transport.close()

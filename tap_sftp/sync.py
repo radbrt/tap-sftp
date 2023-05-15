@@ -40,6 +40,9 @@ def sync_stream(config, state, stream, sftp_client):
         return records_streamed
 
     for sftp_file in files:
+        if not sftp_client.transport.is_active():
+            sftp_client.reconnect()
+
         records_streamed += sync_file(sftp_file, stream, table_spec, config, sftp_client)
         state = singer.write_bookmark(state, table_name, 'modified_since', sftp_file['last_modified'].isoformat())
         singer.write_state(state)
@@ -48,6 +51,13 @@ def sync_stream(config, state, stream, sftp_client):
 
     return records_streamed
 
+def is_sftp_connected(sftp):
+    try:
+        sftp.listdir('.')  # try to list files in the current directory
+        return True
+    except:
+        return False
+    
 
 def sync_file(sftp_file_spec, stream, table_spec, config, sftp_client):
     LOGGER.info('Syncing file "%s".', sftp_file_spec["filepath"])
