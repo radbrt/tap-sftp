@@ -152,7 +152,7 @@ class SFTPConnection():
         """ Takes a file dict {"filepath": "...", "last_modified": "..."} and returns a handle to the file. """
         with tempfile.TemporaryDirectory() as tmpdirname:
             sftp_file_path = f["filepath"]
-            local_path = f'{os.path.basename(sftp_file_path)}'
+            local_path = f'{tmpdirname}/{os.path.basename(sftp_file_path)}'
             if decryption_configs:
                 LOGGER.info(f'Decrypting file: {sftp_file_path}')
                 # Getting sftp file to local, then reading it is much faster than reading it directly from the SFTP
