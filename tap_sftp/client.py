@@ -48,19 +48,19 @@ class SFTPConnection():
         jitter=None,
         factor=2)
     def __connect(self):
-        try:
-            LOGGER.info('Creating new connection to SFTP...')
-            self.transport = paramiko.Transport((self.host, self.port))
-            self.transport.use_compression(True)
-            self.transport.connect(username=self.username, password=self.password, hostkey=None, pkey=self.key)
-            self.__sftp = paramiko.SFTPClient.from_transport(self.transport)
-            LOGGER.info('Connection successful')
-        except (AuthenticationException, SSHException) as ex:
-            self.transport.close()
-            self.transport = paramiko.Transport((self.host, self.port))
-            self.transport.use_compression(True)
-            self.transport.connect(username=self.username, password=self.password, hostkey=None, pkey=None)
-            self.__sftp = paramiko.SFTPClient.from_transport(self.transport)
+
+        LOGGER.info('Creating new connection to SFTP...')
+        self.transport = paramiko.Transport((self.host, self.port))
+        
+        self.transport.default_window_size = paramiko.common.MAX_WINDOW_SIZE
+        self.transport.packetizer.REKEY_BYTES = pow(2, 40)  # 1TB max, this is a security degradation!
+        self.transport.packetizer.REKEY_PACKETS = pow(2, 40)  # 1TB max, this is a security degradation!
+
+        self.transport.use_compression(True)
+        self.transport.connect(username=self.username, password=self.password, hostkey=None, pkey=self.key)
+        self.__sftp = paramiko.SFTPClient.from_transport(self.transport)
+        LOGGER.info('Connection successful')
+
 
     @property
     def sftp(self):
@@ -152,7 +152,7 @@ class SFTPConnection():
         """ Takes a file dict {"filepath": "...", "last_modified": "..."} and returns a handle to the file. """
         with tempfile.TemporaryDirectory() as tmpdirname:
             sftp_file_path = f["filepath"]
-            local_path = f'{tmpdirname}/{os.path.basename(sftp_file_path)}'
+            local_path = f'{os.path.basename(sftp_file_path)}'
             if decryption_configs:
                 LOGGER.info(f'Decrypting file: {sftp_file_path}')
                 # Getting sftp file to local, then reading it is much faster than reading it directly from the SFTP
