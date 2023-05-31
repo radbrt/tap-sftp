@@ -1,6 +1,6 @@
 import singer
 from singer import Transformer, metadata, utils
-
+import time
 from tap_sftp import client, stats
 from tap_sftp.aws_ssm import AWS_SSM
 from tap_sftp.singer_encodings import csv_handler
@@ -8,7 +8,7 @@ from tap_sftp.singer_encodings import csv_handler
 LOGGER = singer.get_logger()
 
 
-def sync_stream(config, state, stream, sftp_client):
+def sync_stream(config, state, stream):
     table_name = stream.tap_stream_id
     modified_since = utils.strptime_to_utc(singer.get_bookmark(state, table_name, 'modified_since') or
                                            config['start_date'])
@@ -26,13 +26,17 @@ def sync_stream(config, state, stream, sftp_client):
         return 0
     table_spec = table_spec[0]
 
+    sftp_client = client.connection(config)
+
     files = sftp_client.get_files(
         table_spec["search_prefix"],
         table_spec["search_pattern"],
         modified_since
     )
-    # sftp_client.close()
 
+    sftp_client.close()
+    
+    time.sleep(5)
     LOGGER.info('Found %s files to be synced.', len(files))
 
     records_streamed = 0
@@ -40,7 +44,9 @@ def sync_stream(config, state, stream, sftp_client):
         return records_streamed
 
     for sftp_file in files:
-        records_streamed += sync_file(sftp_file, stream, table_spec, config, sftp_client)
+        
+        records_streamed += sync_file(sftp_file, stream, table_spec, config)
+        
         state = singer.write_bookmark(state, table_name, 'modified_since', sftp_file['last_modified'].isoformat())
         singer.write_state(state)
 
@@ -49,15 +55,18 @@ def sync_stream(config, state, stream, sftp_client):
     return records_streamed
 
 
-def sync_file(sftp_file_spec, stream, table_spec, config, sftp_client):
+def sync_file(sftp_file_spec, stream, table_spec, config):
     LOGGER.info('Syncing file "%s".', sftp_file_spec["filepath"])
     decryption_configs = config.get('decryption_configs')
+    sftp_client = client.connection(config)
     if decryption_configs:
         decryption_configs['key'] = AWS_SSM.get_decryption_key(decryption_configs.get('SSM_key_name'))
         file_handle, decrypted_name = sftp_client.get_file_handle(sftp_file_spec, decryption_configs)
         sftp_file_spec['filepath'] = decrypted_name
     else:
         file_handle = sftp_client.get_file_handle(sftp_file_spec)
+    
+    sftp_client.close()
 
     # Add file_name to opts and flag infer_compression to support gzipped files
     opts = {'key_properties': table_spec.get('key_properties'),
