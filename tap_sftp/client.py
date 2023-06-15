@@ -52,7 +52,7 @@ class SFTPConnection():
         LOGGER.info('Creating new connection to SFTP...')
         self.transport = paramiko.Transport((self.host, self.port))
         
-        self.transport.default_window_size = paramiko.common.MAX_WINDOW_SIZE
+        # self.transport.default_window_size = paramiko.common.MAX_WINDOW_SIZE
         # self.transport.packetizer.REKEY_BYTES = pow(2, 40)  # 1TB max, this is a security degradation!
         # self.transport.packetizer.REKEY_PACKETS = pow(2, 40)  # 1TB max, this is a security degradation!
 
