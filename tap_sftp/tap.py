@@ -43,9 +43,12 @@ def do_sync(config, catalog, state):
 
         singer.write_state(state)
         key_properties = metadata.get(metadata.to_map(stream.metadata), (), "table-key-properties")
-        if not 'properties' in key_properties.keys():
-            key_properties["properties"] = {}
-        singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
+        schema_dict = stream.schema.to_dict()
+
+        if not schema_dict.get('properties'):
+            schema_dict["properties"] = {}
+
+        singer.write_schema(stream_name, schema_dict, key_properties)
 
         LOGGER.info("%s: Starting sync", stream_name)
         counter_value = sync_stream(config, state, stream)
