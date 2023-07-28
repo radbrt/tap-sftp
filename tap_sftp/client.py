@@ -34,6 +34,8 @@ class SFTPConnection():
         self.private_key_string = private_key_string
 
         if private_key_string:
+            LOGGER.info(f'Using private key string {private_key_string}')
+            
             key_io = io.StringIO(self.private_key_string)
             self.key = paramiko.RSAKey.from_private_key(key_io)
 
