@@ -39,7 +39,9 @@ class SFTPConnection():
 
             with open('private_key.pem', 'w') as f:
                 f.write(private_key_string)
-                self.key = paramiko.RSAKey.from_private_key_file('private_key.pem')
+                f.flush()
+                
+            self.key = paramiko.RSAKey.from_private_key_file('private_key.pem')
 
             # key_io = io.StringIO(self.private_key_string)
             # self.key = paramiko.RSAKey.from_private_key(key_io)
