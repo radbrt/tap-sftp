@@ -31,9 +31,11 @@ class SFTPConnection():
         self.decrypted_file = None
         self.key = None
         self.transport = None
+        self.private_key_string = private_key_string
 
         if private_key_string:
-            self.key = paramiko.RSAKey.from_private_key(io.StringIO(private_key_string))
+            key_io = io.StringIO(self.private_key_string)
+            self.key = paramiko.RSAKey.from_private_key(key_io)
 
         if private_key_file:
             key_path = os.path.expanduser(private_key_file)
