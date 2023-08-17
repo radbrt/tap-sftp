@@ -209,5 +209,6 @@ def connection(config):
                           password=config.get('password'),
                           private_key_file=config.get('private_key_file'),
                           port=config.get('port'),
-                          private_key_string = config.get('private_key_string')
+                          private_key_string = config.get('private_key_string'),
+                          disable_sha2 = config.get('disable_sha2'),
     )
