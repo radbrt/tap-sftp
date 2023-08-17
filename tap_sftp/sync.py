@@ -11,7 +11,7 @@ LOGGER = singer.get_logger()
 def sync_stream(config, state, stream):
     table_name = stream.tap_stream_id
     modified_since = utils.strptime_to_utc(singer.get_bookmark(state, table_name, 'modified_since') or
-                                           config['start_date'])
+                                        config['start_date'])
 
     LOGGER.info('Syncing table "%s".', table_name)
     LOGGER.info('Getting files modified since %s.', modified_since)

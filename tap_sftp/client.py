@@ -23,7 +23,15 @@ def handle_backoff(details):
 
 
 class SFTPConnection():
-    def __init__(self, host, username, password=None, private_key_file=None, port=None, private_key_string=None):
+    def __init__(self, 
+                 host, 
+                 username, 
+                 password=None, 
+                 private_key_file=None, 
+                 port=None, 
+                 private_key_string=None,
+                 disable_sha2=False
+                 ):
         self.host = host
         self.username = username
         self.password = password
@@ -32,6 +40,7 @@ class SFTPConnection():
         self.key = None
         self.transport = None
         self.private_key_string = private_key_string
+        self.disable_sha2 = disable_sha2
 
         if private_key_string:
             key_io = io.StringIO(self.private_key_string)
@@ -55,7 +64,14 @@ class SFTPConnection():
     def __connect(self):
 
         LOGGER.info('Creating new connection to SFTP...')
-        self.transport = paramiko.Transport((self.host, self.port))
+
+        if self.disable_sha2:
+            self.transport = paramiko.Transport((self.host, self.port),
+                                                disabled_algorithms={
+                                                    "pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]
+                                                })
+        else:
+            self.transport = paramiko.Transport((self.host, self.port))
         
         self.transport.default_window_size = paramiko.common.MAX_WINDOW_SIZE
         self.transport.packetizer.REKEY_BYTES = pow(2, 40)  # 1TB max, this is a security degradation!
