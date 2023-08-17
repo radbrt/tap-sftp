@@ -45,11 +45,13 @@ class SFTPConnection():
         if private_key_string:
             key_io = io.StringIO(self.private_key_string)
             self.key = paramiko.RSAKey.from_private_key(key_io)
-
-        # if private_key_file:
-        #     key_path = os.path.expanduser(private_key_file)
-        #     self.key = paramiko.RSAKey.from_private_key_file(key_path)
-
+            self.password = None
+        elif private_key_file:
+            key_path = os.path.expanduser(private_key_file)
+            self.key = paramiko.RSAKey.from_private_key_file(key_path)
+            self.password = None
+        else:
+            self.key = None
         self.__connect()
 
     # If connection is snapped during connect flow, retry up to a
@@ -64,17 +66,17 @@ class SFTPConnection():
     def __connect(self):
 
         LOGGER.info('Creating new connection to SFTP...')
-        self.transport = paramiko.Transport((self.host, self.port),
-                                            disabled_algorithms={
-                                                "pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]
-                                            })
-        # if self.disable_sha2:
-        #     self.transport = paramiko.Transport((self.host, self.port),
-        #                                         disabled_algorithms={
-        #                                             "pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]
-        #                                         })
-        # else:
-        #     self.transport = paramiko.Transport((self.host, self.port))
+        # self.transport = paramiko.Transport((self.host, self.port),
+        #                                     disabled_algorithms={
+        #                                         "pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]
+        #                                     })
+        if self.disable_sha2:
+            self.transport = paramiko.Transport((self.host, self.port),
+                                                disabled_algorithms={
+                                                    "pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]
+                                                })
+        else:
+            self.transport = paramiko.Transport((self.host, self.port))
         
         self.transport.default_window_size = paramiko.common.MAX_WINDOW_SIZE
         self.transport.packetizer.REKEY_BYTES = pow(2, 40)  # 1TB max, this is a security degradation!
