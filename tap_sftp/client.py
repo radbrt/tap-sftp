@@ -30,7 +30,8 @@ class SFTPConnection():
                  private_key_file=None, 
                  port=None, 
                  private_key_string=None,
-                 disable_sha2=False
+                 disable_sha2=False,
+                 avoid_key_rotation=False
                  ):
         self.host = host
         self.username = username
@@ -41,6 +42,7 @@ class SFTPConnection():
         self.transport = None
         self.private_key_string = private_key_string
         self.disable_sha2 = disable_sha2
+        self.avoid_key_rotation = avoid_key_rotation
 
         if private_key_string:
             key_io = io.StringIO(self.private_key_string)
@@ -78,12 +80,13 @@ class SFTPConnection():
         else:
             self.transport = paramiko.Transport((self.host, self.port))
         
-        self.transport.default_window_size = paramiko.common.MAX_WINDOW_SIZE
-        self.transport.packetizer.REKEY_BYTES = pow(2, 40)  # 1TB max, this is a security degradation!
-        self.transport.packetizer.REKEY_PACKETS = pow(2, 40)  # 1TB max, this is a security degradation!
+        if self.avoid_key_rotation:
+            self.transport.default_window_size = paramiko.common.MAX_WINDOW_SIZE
+            self.transport.packetizer.REKEY_BYTES = pow(2, 40)  # 1TB max, this is a security degradation!
+            self.transport.packetizer.REKEY_PACKETS = pow(2, 40)  # 1TB max, this is a security degradation!
 
         self.transport.use_compression(True)
-        self.transport.connect(username=self.username, password=None, hostkey=None, pkey=self.key)
+        self.transport.connect(username=self.username, password=self.password, hostkey=None, pkey=self.key)
         self.__sftp = paramiko.SFTPClient.from_transport(self.transport)
         LOGGER.info('Connection successful')
 
@@ -216,4 +219,5 @@ def connection(config):
                           port=config.get('port'),
                           private_key_string = config.get('private_key_string'),
                           disable_sha2 = config.get('disable_sha2'),
+                          avoid_key_rotation = config.get('avoid_key_rotation')
     )
