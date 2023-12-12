@@ -4,7 +4,7 @@ import stat
 import tempfile
 import time
 from datetime import datetime
-
+import io
 import backoff
 import paramiko
 import pytz
@@ -23,7 +23,16 @@ def handle_backoff(details):
 
 
 class SFTPConnection():
-    def __init__(self, host, username, password=None, private_key_file=None, port=None):
+    def __init__(self, 
+                 host, 
+                 username, 
+                 password=None, 
+                 private_key_file=None, 
+                 port=None, 
+                 private_key_string=None,
+                 disable_sha2=False,
+                 avoid_key_rotation=False
+                 ):
         self.host = host
         self.username = username
         self.password = password
@@ -31,11 +40,20 @@ class SFTPConnection():
         self.decrypted_file = None
         self.key = None
         self.transport = None
+        self.private_key_string = private_key_string
+        self.disable_sha2 = disable_sha2
+        self.avoid_key_rotation = avoid_key_rotation
 
-        if private_key_file:
+        if private_key_string:
+            key_io = io.StringIO(self.private_key_string)
+            self.key = paramiko.RSAKey.from_private_key(key_io)
+            self.password = None
+        elif private_key_file:
             key_path = os.path.expanduser(private_key_file)
             self.key = paramiko.RSAKey.from_private_key_file(key_path)
-
+            self.password = None
+        else:
+            self.key = None
         self.__connect()
 
     # If connection is snapped during connect flow, retry up to a
@@ -50,11 +68,22 @@ class SFTPConnection():
     def __connect(self):
 
         LOGGER.info('Creating new connection to SFTP...')
-        self.transport = paramiko.Transport((self.host, self.port))
+        # self.transport = paramiko.Transport((self.host, self.port),
+        #                                     disabled_algorithms={
+        #                                         "pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]
+        #                                     })
+        if self.disable_sha2:
+            self.transport = paramiko.Transport((self.host, self.port),
+                                                disabled_algorithms={
+                                                    "pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]
+                                                })
+        else:
+            self.transport = paramiko.Transport((self.host, self.port))
         
-        self.transport.default_window_size = paramiko.common.MAX_WINDOW_SIZE
-        self.transport.packetizer.REKEY_BYTES = pow(2, 40)  # 1TB max, this is a security degradation!
-        self.transport.packetizer.REKEY_PACKETS = pow(2, 40)  # 1TB max, this is a security degradation!
+        if self.avoid_key_rotation:
+            self.transport.default_window_size = paramiko.common.MAX_WINDOW_SIZE
+            self.transport.packetizer.REKEY_BYTES = pow(2, 40)  # 1TB max, this is a security degradation!
+            self.transport.packetizer.REKEY_PACKETS = pow(2, 40)  # 1TB max, this is a security degradation!
 
         self.transport.use_compression(True)
         self.transport.connect(username=self.username, password=self.password, hostkey=None, pkey=self.key)
@@ -187,4 +216,8 @@ def connection(config):
                           config['username'],
                           password=config.get('password'),
                           private_key_file=config.get('private_key_file'),
-                          port=config.get('port'))
+                          port=config.get('port'),
+                          private_key_string = config.get('private_key_string'),
+                          disable_sha2 = config.get('disable_sha2', False),
+                          avoid_key_rotation = config.get('avoid_key_rotation', False)
+    )

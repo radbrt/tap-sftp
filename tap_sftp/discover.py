@@ -16,6 +16,9 @@ def discover_streams(config):
     for table_spec in tables:
         LOGGER.info('Sampling records to determine table JSON schema "%s".', table_spec['table_name'])
         schema = json_schema.get_schema_for_table(conn, table_spec, config)
+
+        if not schema.get('properties'):
+            schema['properties'] = {}
         stream_md = metadata.get_standard_metadata(schema,
                                                    key_properties=table_spec.get('key_properties', ['_sdc_source_file', '_sdc_source_lineno']),  # noqa
                                                    replication_method='INCREMENTAL')
